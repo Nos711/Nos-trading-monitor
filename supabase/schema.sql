@@ -1,0 +1,10 @@
+create extension if not exists pgcrypto;
+create table if not exists public.trades(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users(id) on delete cascade,trade_date date not null,exchange text not null,pair text not null,side text not null,entry numeric not null,stop_loss numeric not null,take_profit numeric,risk_usd numeric not null,pnl_usd numeric not null,r_multiple numeric not null,setup text,plan_followed boolean default true,mistake text default 'None',notes text,violation boolean default false,created_at timestamptz default now());
+create table if not exists public.risk_settings(user_id uuid primary key references auth.users(id) on delete cascade,equity numeric default 14000,max_risk_pct numeric default 1,daily_loss_limit numeric default 315,max_trades_day integer default 5,max_loss_streak integer default 3,updated_at timestamptz default now());
+alter table public.trades enable row level security; alter table public.risk_settings enable row level security;
+create policy "own trades select" on public.trades for select using(auth.uid()=user_id);
+create policy "own trades insert" on public.trades for insert with check(auth.uid()=user_id);
+create policy "own trades delete" on public.trades for delete using(auth.uid()=user_id);
+create policy "own risk select" on public.risk_settings for select using(auth.uid()=user_id);
+create policy "own risk insert" on public.risk_settings for insert with check(auth.uid()=user_id);
+create policy "own risk update" on public.risk_settings for update using(auth.uid()=user_id) with check(auth.uid()=user_id);

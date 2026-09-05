@@ -1,0 +1,1 @@
+import "./styles.css"; export const metadata={title:"NØS Trading Monitor"}; export default function Layout({children}){return <html lang="th"><body>{children}</body></html>}

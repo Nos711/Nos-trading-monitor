@@ -1,0 +1,6 @@
+"use client";
+import {useState} from "react"; import {supabase} from "../../lib/supabase";
+export default function Login(){const s=supabase(),[email,setEmail]=useState(""),[password,setPassword]=useState(""),[msg,setMsg]=useState("");
+async function login(e){e.preventDefault();const {error}=await s.auth.signInWithPassword({email,password});if(error)setMsg(error.message);else location.href="/dashboard"}
+async function signup(){const {error}=await s.auth.signUp({email,password});setMsg(error?error.message:"Account created. Confirm email if required, then login.")}
+return <main className="center"><div className="login"><small>PRIVATE TRADING OS</small><h1>NØS Trading Monitor</h1><p>Performance × Risk × Discipline</p><form onSubmit={login}><input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} required/><input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} required/><button>Login</button><button type="button" className="ghost" onClick={signup}>Create my account</button></form><p>{msg}</p></div></main>}

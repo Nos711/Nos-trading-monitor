@@ -1,1 +1,1 @@
-import "./styles.css"; export const metadata={title:"NØS Trading Monitor"}; export default function Layout({children}){return <html lang="th"><body>{children}</body></html>}
+import "./styles.css"; export const metadata={title:"NØS Trading Monitor"}; export default function Layout({children}){return <html lang="th"><body>{children}<a className="challengeFloat" href="/challenge">20-Trade Challenge</a></body></html>}

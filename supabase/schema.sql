@@ -9,3 +9,15 @@ create policy "own trades delete" on public.trades for delete using(auth.uid()=u
 create policy "own risk select" on public.risk_settings for select using(auth.uid()=user_id);
 create policy "own risk insert" on public.risk_settings for insert with check(auth.uid()=user_id);
 create policy "own risk update" on public.risk_settings for update using(auth.uid()=user_id) with check(auth.uid()=user_id);
+create table if not exists public.dca_positions(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users(id) on delete cascade,exchange text not null,pair text not null,current_price numeric,notes text,created_at timestamptz default now());
+create table if not exists public.dca_entries(id uuid primary key default gen_random_uuid(),user_id uuid not null references auth.users(id) on delete cascade,position_id uuid not null references public.dca_positions(id) on delete cascade,entry_date timestamptz not null,entry_price numeric not null check(entry_price>0),amount numeric not null check(amount>0),amount_type text not null check(amount_type in ('Quantity','USDT','Lots')),contract_size numeric,fee_usdt numeric not null default 0 check(fee_usdt>=0),notes text,created_at timestamptz default now());
+alter table public.dca_positions enable row level security; alter table public.dca_entries enable row level security;
+create policy "own dca positions select" on public.dca_positions for select to authenticated using((select auth.uid())=user_id);
+create policy "own dca positions insert" on public.dca_positions for insert to authenticated with check((select auth.uid())=user_id);
+create policy "own dca positions update" on public.dca_positions for update to authenticated using((select auth.uid())=user_id) with check((select auth.uid())=user_id);
+create policy "own dca positions delete" on public.dca_positions for delete to authenticated using((select auth.uid())=user_id);
+create policy "own dca entries select" on public.dca_entries for select to authenticated using((select auth.uid())=user_id);
+create policy "own dca entries insert" on public.dca_entries for insert to authenticated with check((select auth.uid())=user_id and exists(select 1 from public.dca_positions p where p.id=position_id and p.user_id=(select auth.uid())));
+create policy "own dca entries update" on public.dca_entries for update to authenticated using((select auth.uid())=user_id) with check((select auth.uid())=user_id and exists(select 1 from public.dca_positions p where p.id=position_id and p.user_id=(select auth.uid())));
+create policy "own dca entries delete" on public.dca_entries for delete to authenticated using((select auth.uid())=user_id);
+grant select,insert,update,delete on table public.dca_positions,public.dca_entries to authenticated;

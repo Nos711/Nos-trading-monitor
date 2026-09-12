@@ -1,0 +1,22 @@
+.calendarDetails {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.calendarDetails .card small {
+  color: var(--muted);
+}
+
+@media (max-width: 1000px) {
+  .calendarDetails {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .calendarDetails {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

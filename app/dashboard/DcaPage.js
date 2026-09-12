@@ -15,6 +15,9 @@ const btcHistory=[
  {key:"BTC-HISTORY-2026-03-24-05-22",entry_date:"2026-05-22T05:00:00.000Z",entry_price:6588/0.00271417,amount:0.00271417,fee_usdt:0,notes:"Auto DCA summary · 24 Mar–22 May · 61 × ฿108"},
  {key:"BTC-HISTORY-2026-09-06-12",entry_date:"2026-09-12T05:00:00.000Z",entry_price:7056/0.00271519,amount:0.00271519,fee_usdt:0,notes:"Auto DCA summary · 6–12 Sep · 7 × ฿1,008"}
 ];
+const okxHistory=[
+ {key:"OKX-BTC-SNAPSHOT-2026-09-12",entry_date:"2026-09-12T08:02:00.000Z",entry_price:432/0.00546872,amount:0.00546872,fee_usdt:0,notes:"Snapshot as of 12 Sep 2026 (not execution time) · 4 days × 108 USDT = 432 USDT · Actual daily fills unavailable · Cash-based average; fees not separately known or added · OKX displayed cost price 78866.9346 USD/BTC"}
+];
 const math=(p,x)=>{let price=+x.entry_price||0,amount=+x.amount||0,qty=x.amount_type==="Quantity"?amount:["OKX","Bitkub"].includes(p?.exchange)?(price?amount/price:0):p?.exchange==="XM"?amount*(+x.contract_size||100000):amount;return{qty,cost:x.amount_type==="Quantity"?price*qty:["OKX","Bitkub"].includes(p?.exchange)?amount:price*qty}};
 function summary(p,rows){let quantity=0,subtotal=0,fees=0;rows.forEach(x=>{let m=math(p,x);quantity+=m.qty;subtotal+=m.cost;fees+=+x.fee_usdt||0});let total=subtotal+fees,average=quantity?subtotal/quantity:0,breakEven=quantity?total/quantity:0,current=+p?.current_price||0,pnl=current?current*quantity-total:0;return{count:rows.length,quantity,subtotal,fees,total,average,breakEven,pnl,returnPct:total?pnl/total*100:0}}
 function running(p,rows){let quantity=0,cost=0;return rows.map(x=>{let m=math(p,x);quantity+=m.qty;cost+=m.cost+(+x.fee_usdt||0);return{...x,...m,runningAverage:quantity?cost/quantity:0}})}
@@ -51,11 +54,33 @@ export default function DcaPage({client,user}){
   setSelected(target.id);await load();setBusy(false);
   alert(missing.length?missing.length+" BTC history records imported":"BTC history is already imported");
  }
+ async function importOkxHistory(){
+  if(!user||busy)return;
+  if(!confirm("Import OKX snapshot: 4 × 108 USDT = 432 USDT / 0.00546872 BTC? Do not import if these purchases are already recorded."))return;
+  setBusy(true);
+  let target=positions.find(x=>x.exchange==="OKX"&&["BTCUSDT","BTC/USDT","BTC"].includes(x.pair));
+  if(!target){
+   let {data,error}=await client.from("dca_positions").insert({user_id:user.id,exchange:"OKX",pair:"BTCUSDT",notes:"OKX BTC · 4-day summary as of 12 Sep 2026"}).select().single();
+   if(error){setBusy(false);return alert(error.message)}
+   target=data;
+  }
+  let {data:existing,error:readError}=await client.from("dca_entries").select("notes").eq("position_id",target.id);
+  if(readError){setBusy(false);return alert(readError.message)}
+  let seen=new Set((existing||[]).map(x=>(x.notes||"").split(" · ")[0]));
+  let missing=okxHistory.filter(x=>!seen.has("["+x.key+"]"));
+  if(missing.length){
+   let payload=missing.map(x=>({user_id:user.id,position_id:target.id,entry_date:x.entry_date,entry_price:x.entry_price,amount:x.amount,amount_type:"Quantity",contract_size:null,fee_usdt:x.fee_usdt,notes:"["+x.key+"] · "+x.notes}));
+   let {error}=await client.from("dca_entries").insert(payload);
+   if(error){setBusy(false);return alert(error.message)}
+  }
+  setSelected(target.id);await load();setBusy(false);
+  alert(missing.length?missing.length+" BTC history records imported":"BTC history is already imported");
+ }
  async function removeEntry(id){if(!confirm("Delete this DCA entry?"))return;let {error}=await client.from("dca_entries").delete().eq("id",id);if(error)return alert(error.message);await load()}
  async function removePosition(){if(!confirm("Delete this position and all DCA entries?"))return;let {error}=await client.from("dca_positions").delete().eq("id",position.id);if(error)return alert(error.message);setSelected(null);await load()}
  let currency=position?.exchange==="Bitkub"?"THB":"USD",amountLabel=position?.exchange==="OKX"?"Position Added (USDT)":position?.exchange==="Bitkub"?"Amount Invested (THB)":position?.exchange==="XM"?"Lots":"Quantity / Coins";
  return <div className="dcaPage">
-  <section className="panel"><div className="panelHead"><h2>Create DCA Position</h2><small>One position can contain multiple entries</small></div><div className="body form dcaCreate"><label><span>Exchange</span><select value={pf.exchange} onChange={e=>setPf({...pf,exchange:e.target.value})}>{exchanges.map(x=><option key={x}>{x}</option>)}</select></label><label><span>Pair / Symbol</span><input value={pf.pair} onChange={e=>setPf({...pf,pair:e.target.value})}/></label><label><span>Current Price (optional)</span><input type="number" step="any" value={pf.current_price} onChange={e=>setPf({...pf,current_price:e.target.value})}/></label><label><span>Notes</span><input value={pf.notes} onChange={e=>setPf({...pf,notes:e.target.value})}/></label><button disabled={busy} onClick={create}>Create Position</button><button disabled={busy} onClick={importBtcHistory} title="Imports and saves the verified BTC history without duplicates">Import & Save BTC History (5 records)</button></div></section>
+  <section className="panel"><div className="panelHead"><h2>Create DCA Position</h2><small>One position can contain multiple entries</small></div><div className="body form dcaCreate"><label><span>Exchange</span><select value={pf.exchange} onChange={e=>setPf({...pf,exchange:e.target.value})}>{exchanges.map(x=><option key={x}>{x}</option>)}</select></label><label><span>Pair / Symbol</span><input value={pf.pair} onChange={e=>setPf({...pf,pair:e.target.value})}/></label><label><span>Current Price (optional)</span><input type="number" step="any" value={pf.current_price} onChange={e=>setPf({...pf,current_price:e.target.value})}/></label><label><span>Notes</span><input value={pf.notes} onChange={e=>setPf({...pf,notes:e.target.value})}/></label><button disabled={busy} onClick={create}>Create Position</button><button disabled={busy} onClick={importBtcHistory} title="Imports and saves the verified BTC history without duplicates">Import & Save BTC History (5 records)</button><button disabled={busy} onClick={importOkxHistory}>Import &amp; Save OKX BTC (4-day summary)</button></div></section>
   <div className="dcaLayout"><section className="panel dcaList"><div className="panelHead"><h2>DCA Positions</h2><small>{positions.length}</small></div><div className="body">{positions.length?positions.map(x=>{let z=summary(x,entries.filter(e=>e.position_id===x.id));return <button className={`dcaPosition${selected===x.id?" active":""}${isBtc(x.pair)?" bitcoin":""}`} key={x.id} onClick={()=>setSelected(x.id)}><span><b>{x.pair}</b><small>{x.exchange} · {z.count} entries</small></span><strong>{z.quantity?priceNum(z.breakEven,x.exchange==="Bitkub"?"THB":"USD"):"—"}</strong></button>}):<div className="emptyState">Create the first position</div>}</div></section>
   <div>{position?<><div className="kpis dcaKpis"><div className="card"><span>AVERAGE ENTRY</span><b>{s.quantity?priceNum(s.average,currency):"—"}</b></div><div className="card"><span>COST / COIN + FEES</span><b>{s.quantity?priceNum(s.breakEven,currency):"—"}</b></div><div className="card"><span>TOTAL QUANTITY</span><b>{num(s.quantity)}</b></div><div className="card"><span>TOTAL INVESTED</span><b>{money(s.total,currency)}</b></div><div className="card"><span>UNREALIZED P&L</span><b className={s.pnl>=0?"pos":"neg"}>{position.current_price?money(s.pnl,currency):"—"}</b></div><div className="card"><span>RETURN</span><b className={s.returnPct>=0?"pos":"neg"}>{position.current_price?s.returnPct.toFixed(2)+"%":"—"}</b></div></div>
   <section className="panel"><div className="panelHead"><h2 className={isBtc(position.pair)?"bitcoinText":""}>{position.exchange} · {position.pair}</h2><button className="delete" onClick={removePosition}>Delete Position</button></div><div className="body currentPrice"><label><span>Current Price ({currency})</span><input type="number" step="any" defaultValue={position.current_price||""} onBlur={e=>price(e.target.value)}/></label><small>Update to calculate unrealized P&L</small></div></section>

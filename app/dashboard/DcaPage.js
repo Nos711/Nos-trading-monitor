@@ -3,7 +3,7 @@ import {useEffect,useMemo,useState} from "react";
 import "../dca.css";
 
 const exchanges=["Binance","OKX","Bitkub","XM","Dime"];
-const money=(n,currency="USD")=>(currency==="THB"?"฿":"$")+Number(n||0).toLocaleString(undefined,currency==="THB"?{maximumFractionDigits:0}:{minimumFractionDigits:2,maximumFractionDigits:2});
+const money=(n,currency="USD")=>(currency==="THB"?"฿":"$")+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:0});
 const num=n=>Number(n||0).toLocaleString(undefined,{maximumFractionDigits:8});
 const priceNum=(n,currency)=>Number(n||0).toLocaleString(undefined,currency==="THB"?{maximumFractionDigits:0}:{maximumFractionDigits:8});
 const isBtc=pair=>String(pair||"").toUpperCase().includes("BTC");

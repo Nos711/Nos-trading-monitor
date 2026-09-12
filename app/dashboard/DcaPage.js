@@ -13,7 +13,7 @@ const btcHistory=[
  {key:"BTC-HISTORY-2026-03-24-05-22",entry_date:"2026-05-22T05:00:00.000Z",entry_price:6588/0.00271417,amount:0.00271417,fee_usdt:0,notes:"Auto DCA summary · 24 Mar–22 May · 61 × ฿108"},
  {key:"BTC-HISTORY-2026-09-06-12",entry_date:"2026-09-12T05:00:00.000Z",entry_price:7056/0.00271519,amount:0.00271519,fee_usdt:0,notes:"Auto DCA summary · 6–12 Sep · 7 × ฿1,008"}
 ];
-const math=(p,x)=>{let price=+x.entry_price||0,amount=+x.amount||0,qty=x.amount_type==="Quantity"?amount:["OKX","Bitkub"].includes(p?.exchange)?(price?amount/price:0):p?.exchange==="XM"?amount*(+x.contract_size||100000):amount;return{qty,cost:["OKX","Bitkub"].includes(p?.exchange)?amount:price*qty}};
+const math=(p,x)=>{let price=+x.entry_price||0,amount=+x.amount||0,qty=x.amount_type==="Quantity"?amount:["OKX","Bitkub"].includes(p?.exchange)?(price?amount/price:0):p?.exchange==="XM"?amount*(+x.contract_size||100000):amount;return{qty,cost:x.amount_type==="Quantity"?price*qty:["OKX","Bitkub"].includes(p?.exchange)?amount:price*qty}};
 function summary(p,rows){let quantity=0,subtotal=0,fees=0;rows.forEach(x=>{let m=math(p,x);quantity+=m.qty;subtotal+=m.cost;fees+=+x.fee_usdt||0});let total=subtotal+fees,average=quantity?subtotal/quantity:0,breakEven=quantity?total/quantity:0,current=+p?.current_price||0,pnl=current?current*quantity-total:0;return{count:rows.length,quantity,subtotal,fees,total,average,breakEven,pnl,returnPct:total?pnl/total*100:0}}
 function running(p,rows){let quantity=0,cost=0;return rows.map(x=>{let m=math(p,x);quantity+=m.qty;cost+=m.cost+(+x.fee_usdt||0);return{...x,...m,runningAverage:quantity?cost/quantity:0}})}
 

@@ -1,1 +1,3 @@
-import "./styles.css"; export const metadata={title:"NØS Trading Monitor"}; export default function Layout({children}){return <html lang="th"><body>{children}<a className="challengeFloat" href="/challenge">20-Trade Challenge</a></body></html>}
+import "./styles.css";
+export const metadata={title:"NØS Trading Monitor"};
+export default function Layout({children}){return <html lang="th"><body>{children}<div style={{position:"fixed",right:"18px",bottom:"18px",zIndex:9999,display:"flex",gap:"8px",alignItems:"center"}}><a href="/portfolio" style={{padding:"10px 14px",borderRadius:"10px",background:"#111827",color:"#fff",textDecoration:"none",fontWeight:700,fontSize:"13px",boxShadow:"0 6px 20px rgba(0,0,0,.18)"}}>Portfolio</a><a className="challengeFloat" href="/challenge">20-Trade Challenge</a></div></body></html>}
